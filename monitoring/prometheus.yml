@@ -1,8 +1,0 @@
-# prometheus.yml
-global:
-  scrape_interval: 15s  # Default scrape interval
-
-scrape_configs:
-  - job_name: 'etl_pipeline'
-    static_configs:
-      - targets: ['localhost:9090']  # Adjust according to your ETL service endpoint
