@@ -1,24 +1,34 @@
-# Base image
-FROM openjdk:8-jdk-alpine
+# Use OpenJDK 8 on a Debian-based image as base image for better compatibility
+FROM openjdk:8-jdk-slim
 
-# Install PySpark dependencies
-RUN apk add --no-cache bash curl && \
-    curl -O https://dlcdn.apache.org/spark/spark-3.4.0/spark-3.4.0-bin-hadoop3.tgz && \
-    tar -xzf spark-3.4.0-bin-hadoop3.tgz && \
-    mv spark-3.4.0-bin-hadoop3 /opt/spark
+# Install essential tools and dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    bash curl gfortran build-essential liblapack-dev python3 python3-pip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Download and install Apache Spark
+RUN curl -O https://archive.apache.org/dist/spark/spark-3.4.0/spark-3.4.0-bin-hadoop3.tgz && \
+    tar -xvzf spark-3.4.0-bin-hadoop3.tgz && \
+    mv spark-3.4.0-bin-hadoop3 /opt/spark && \
+    rm spark-3.4.0-bin-hadoop3.tgz
 
 # Set environment variables for Spark
-ENV SPARK_HOME /opt/spark
-ENV PATH $SPARK_HOME/bin:$PATH
+ENV SPARK_HOME=/opt/spark
+ENV PATH=$SPARK_HOME/bin:$PATH
 
-# Install Python and dependencies
-RUN apk add --no-cache python3 py3-pip
+# Copy requirements file into the container
 COPY requirements.txt .
-RUN pip3 install -r requirements.txt
+
+# Install Python dependencies (including pandas and numpy)
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Set the working directory
+WORKDIR /app
 
 # Copy the application code
-WORKDIR /app
 COPY . .
 
-# Set default command
-CMD ["spark-submit", "--master", "local[*]", "your_script.py"]
+# Specify default command to run your PySpark model
+CMD ["python3", "main.py"]
